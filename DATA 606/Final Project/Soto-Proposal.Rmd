@@ -1,0 +1,117 @@
+---
+title: "DATA 606 Data Project Proposal"
+author: "Isaias Soto"
+output: pdf_document
+---
+
+### Data Preparation
+
+```{r setup, echo=TRUE, results='hide', warning=FALSE, message=FALSE}
+# load data from github repository
+library(tidyverse)
+library(RCurl)
+x <- getURL("https://raw.githubusercontent.com/isaias-soto/CUNY-School-Projects---Assignments-/refs/heads/main/DATA%20606/Final%20Project/alcohol_consumption_PLA_2010-2019.csv") 
+dat0 <- read.csv(text = x, header = TRUE)
+
+
+# First we want to use the first row as column names
+dat1 <- dat0 
+colnames(dat1) <- dat0[1,]
+
+# We want to transform the 'Year' and 'alcohol type' data from wider to 
+# longer format. We also want to subset only columns we will use
+
+dat1 <- dat1 |>
+  select(-c(2,5:13)) |>
+  slice(2:941) |>
+  rename(country = `Countries, territories and areas`,
+         beverage_type = `Beverage Types`) |>
+  pivot_wider(names_from = "beverage_type", values_from = "2019") |>
+  rename(total_liters_pure_alcohol = ` All types`,
+         beer_servings = ` Beer`, 
+         wine_servings = ` Wine`,
+         spirit_servings = ` Spirits`,
+         other_liters_pure_alcohol = ` Other alcoholic beverages`)
+
+# We also want to convert beer, wine, and spirits into their assumed specific 
+# serving sizes: 12 oz for beer, 1.5 oz for spirits, 5 oz for wine. Assumed 
+# ABV: 5% for beer, 40% for spirits, 12% for wine. We will convert from Pure 
+# Liters of Alcohol (PLA) to specific serving sizes by taking PLA divided by
+# ABV, times 33.81 (the conversion from liters to fluid ounces), and finally 
+# divide by 1 serving of the alcohol type.
+
+alc_consum <- dat1 |>
+  mutate(beer_servings = floor(((beer_servings/.05)*33.814)/12),
+         wine_servings = floor(((wine_servings/.12)*33.814)/5),
+         spirit_servings = floor(((spirit_servings/.4)*33.814)/1.5))
+```
+
+
+### Research question 
+
+**You should phrase your research question in a way that matches up with the scope of inference your dataset allows for.**
+What are the alcohol drinking trends across the world, and which countries drink the most beer, wine, and spirits?
+
+
+### Cases 
+
+**What are the cases, and how many are there?**
+Each case represents a country in the WHO's dataset. There are 188 observations in the given dataset. 
+
+
+### Data collection 
+
+**Describe the method of data collection.**
+Data is collected by the World Health Organization (WHO) through a variety of methods, including household surveys, civil registration systems, administrative data from institutions, and various survey and assessment programs. Data is used to make reports and hosted on their website the Global Health Observatory as a repository. 
+
+
+### Type of study 
+
+**What type of study is this (observational/experiment)?**
+This is an observational study.
+
+
+### Data Source 
+
+**If you collected the data, state self-collected. If not, provide a citation/link.**
+The data was collected by the WHO and can be found online:https://apps.who.int/gho/data/node.main.A1039?lang=en The data was downloaded from their site, uploaded to my public repository and extracted using the RCurl package from raw file on my public repository. 
+
+Global Health Observatory, & World Health Organization (Eds.). (n.d.). Recorded alcohol per capita consumption, from 2010 Updated May 2021. Global Health Observatory data repository. https://apps.who.int/gho/data/node.main.A1039?lang=en 
+
+
+
+### Describe your variables?
+
+**Are they quantitative or qualitative**
+There is one qualitative (`country`), and 5 quantitative variables of type numeric. 
+
+**If you are are running a regression or similar model, which one is your dependent variable?**
+Since I am trying to find the countries that each drink the most beer, wine, and spirits, my dependent or explanatory variable is `country`, a qualitative variable. The other variables are response variables that are quantitative numeric.  
+
+### Relevant summary statistics 
+
+**Provide summary statistics for each the variables. Also include appropriate visualizations related to your research question (e.g. scatter plot, boxplots, etc). This step requires the use of R, hence a code chunk is provided below. Insert more code chunks as needed.**
+
+```{r vars-summaries}
+summary(alc_consum)
+```
+
+```{r beer-plot}
+alc_consum |>
+  ggplot(aes(x = beer_servings)) + 
+  geom_histogram(bins = 45)
+```
+
+```{r wine-plot}
+alc_consum |>
+  ggplot(aes(x = wine_servings)) + 
+  geom_histogram(bins = 30)
+```
+
+```{r spirit-plot}
+alc_consum |>
+  ggplot(aes(x = spirit_servings)) + 
+  geom_histogram(bins = 25)
+```
+
+
